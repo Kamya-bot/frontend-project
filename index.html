@@ -1,0 +1,3086 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Production-grade interactive wall calendar with range selection, notes, and dark mode" />
+  <meta name="theme-color" content="#0F62FE" />
+  <title>Wall Calendar — Production Ready</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+/* ================================================================
+   DESIGN TOKEN SYSTEM
+   Following Material Design 3 / Apple HIG principles
+================================================================ */
+:root {
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Typography Scale (Major Third 1.25) */
+  --sz-micro:  11px;
+  --sz-caption: 13px;
+  --sz-body: 15px;
+  --sz-subhead: 18px;
+  --sz-head: 24px;
+  --sz-display: 36px;
+  
+  /* Font Weights */
+  --fw-light: 300;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  
+  /* Line Heights */
+  --lh-tight: 1.2;
+  --lh-normal: 1.4;
+  --lh-relaxed: 1.6;
+  --lh-loose: 2;
+  
+  /* Letter Spacing */
+  --ls-tight: -0.02em;
+  --ls-normal: 0em;
+  --ls-wide: 0.04em;
+  --ls-wider: 0.08em;
+  --ls-widest: 0.12em;
+  
+  /* Spacing Scale (8px grid) */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px;
+  --s12: 48px; --s16: 64px;
+  
+  /* Border Radius */
+  --r-xs: 2px; --r-sm: 4px; --r-md: 8px;
+  --r-lg: 12px; --r-xl: 16px; --r-2xl: 20px; --r-full: 9999px;
+  
+  /* Elevation (Shadows) */
+  --elev-0: none;
+  --elev-1: 0 1px 2px rgba(0,0,0,.06);
+  --elev-2: 0 2px 8px rgba(0,0,0,.08);
+  --elev-3: 0 4px 16px rgba(0,0,0,.10);
+  --elev-4: 0 8px 32px rgba(0,0,0,.12);
+  --elev-5: 0 16px 48px rgba(0,0,0,.16);
+  
+  /* Motion Tokens */
+  --motion-instant: 0ms;
+  --motion-fast: 100ms ease;
+  --motion-base: 200ms ease;
+  --motion-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --motion-flip: 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-color: 500ms ease;
+  
+  /* Accent Colors (Dynamic - overridden by dominant color) */
+  --accent: #0F62FE;
+  --accent-dark: #002D9C;
+  --accent-light: #D0E2FF;
+  --accent-rgb: 15, 98, 254;
+  
+  /* Semantic Light Theme Palette */
+  --bg-base: #F4F4F4;
+  --bg-surface: #FFFFFF;
+  --bg-surface-raised: #F8F8F8;
+  --border: #E0E0E0;
+  --border-strong: #C6C6C6;
+  --text-1: #161616;
+  --text-2: #525252;
+  --text-3: #8D8D8D;
+  --text-disabled: #C6C6C6;
+  --state-hover: #F0F4FF;
+  --state-active: #D0E2FF;
+  --state-focus-ring: rgba(15, 98, 254, 0.25);
+  --range-fill: #EBF1FF;
+  --range-border: #A6C2FF;
+  --notepad-line: #E0E0E0;
+  --weekend-text: #4589FF;
+  --holiday-indicator: #DA1E28;
+  --binding-metal: #2C2C2C;
+  --tooltip-bg: #1C1C1C;
+  --success: #24A148;
+  --warning: #F1C21B;
+  --error: #DA1E28;
+  
+  /* Z-index Scale */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-overlay: 100;
+  --z-modal: 1000;
+  --z-toast: 10000;
+}
+
+[data-theme="dark"] {
+  --bg-base: #0D0D0D;
+  --bg-surface: #161616;
+  --bg-surface-raised: #1F1F1F;
+  --border: #2D2D2D;
+  --border-strong: #3D3D3D;
+  --text-1: #F4F4F4;
+  --text-2: #A8A8A8;
+  --text-3: #6F6F6F;
+  --text-disabled: #3D3D3D;
+  --state-hover: #1A2332;
+  --state-active: #0D1B2E;
+  --range-fill: rgba(15, 98, 254, 0.12);
+  --range-border: #1A3A6B;
+  --notepad-line: #2D2D2D;
+}
+
+/* ================================================================
+   RESET & BASE STYLES
+================================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font);
+  font-size: var(--sz-body);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-relaxed);
+  color: var(--text-1);
+  background: var(--bg-base);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color var(--motion-base), color var(--motion-base);
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+textarea {
+  font-family: inherit;
+  resize: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+/* Theme Transition Class */
+.theme-transitioning,
+.theme-transitioning * {
+  transition: background-color var(--motion-base),
+              color var(--motion-base),
+              border-color var(--motion-base),
+              box-shadow var(--motion-base) !important;
+}
+
+/* ================================================================
+   UTILITY CLASSES
+================================================================ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.no-scroll {
+  overflow: hidden;
+}
+
+/* ================================================================
+   MAIN LAYOUT
+================================================================ */
+#app {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--s8) var(--s4);
+  transition: background var(--motion-base);
+}
+
+.calendar-container {
+  width: 100%;
+  max-width: 1100px;
+  background: var(--bg-surface);
+  border-radius: var(--r-xl);
+  box-shadow: var(--elev-5);
+  overflow: hidden;
+  transition: background var(--motion-base), box-shadow var(--motion-base);
+}
+
+/* ================================================================
+   BINDING STRIP
+================================================================ */
+.binding-strip {
+  height: 28px;
+  background: var(--binding-metal);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 var(--s4);
+  position: relative;
+  overflow: hidden;
+}
+
+.binding-strip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #3e3e3e 0%, #1a1a1a 100%);
+  pointer-events: none;
+}
+
+.binding-ring {
+  position: relative;
+  width: 14px;
+  height: 20px;
+  border-radius: var(--r-full);
+  background: radial-gradient(ellipse at 35% 30%, 
+    #f2f2f2 0%, 
+    #c0c0c0 35%, 
+    #808080 65%,
+    #555555 100%);
+  border: 1px solid #3a3a3a;
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.6),
+    0 1px 4px rgba(0, 0, 0, 0.8);
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+/* ================================================================
+   HERO IMAGE SECTION
+================================================================ */
+.hero-section {
+  position: relative;
+  height: 340px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.hero-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.hero-image.visible {
+  opacity: 1;
+}
+
+.hero-geometric-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 320px;
+  height: 240px;
+  pointer-events: none;
+  transition: fill var(--motion-color);
+  z-index: 1;
+}
+
+.hero-text-overlay {
+  position: absolute;
+  bottom: var(--s6);
+  right: var(--s6);
+  text-align: right;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hero-year {
+  display: block;
+  font-size: var(--sz-display);
+  font-weight: var(--fw-light);
+  color: white;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.hero-month {
+  display: block;
+  font-size: 28px;
+  font-weight: var(--fw-bold);
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-widest);
+  line-height: var(--lh-tight);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  position: absolute;
+  top: var(--s3);
+  right: var(--s3);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-full);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: var(--z-sticky);
+  transition: background var(--motion-base), transform var(--motion-spring);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.theme-toggle:hover {
+  background: rgba(0, 0, 0, 0.65);
+  transform: scale(1.1) rotate(20deg);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+  transition: opacity var(--motion-base);
+}
+
+/* ================================================================
+   NAVIGATION BAR
+================================================================ */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 var(--s4);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  transition: background var(--motion-base), border-color var(--motion-base);
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.nav-button {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-1);
+  background: var(--bg-surface);
+  transition: all var(--motion-fast);
+}
+
+.nav-button:hover:not(:disabled) {
+  background: var(--state-hover);
+  border-color: var(--accent);
+  transform: scale(1.08);
+}
+
+.nav-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.nav-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.nav-title {
+  font-size: 22px;
+  font-weight: var(--fw-semibold);
+  color: var(--text-1);
+  letter-spacing: var(--ls-tight);
+  user-select: none;
+  transition: color var(--motion-base);
+}
+
+.today-button {
+  font-size: var(--sz-caption);
+  font-weight: var(--fw-medium);
+  color: var(--accent);
+  padding: var(--s1) var(--s3);
+  border-radius: var(--r-sm);
+  transition: all var(--motion-fast);
+  min-width: 60px;
+  text-align: center;
+}
+
+.today-button:hover {
+  background: var(--state-hover);
+}
+
+.today-button.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ================================================================
+   CALENDAR BODY (2-COLUMN LAYOUT)
+================================================================ */
+.calendar-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 500px;
+}
+
+/* ================================================================
+   CALENDAR GRID SECTION
+================================================================ */
+.calendar-grid-wrapper {
+  padding: var(--s3) var(--s4) var(--s5);
+  background: var(--bg-surface);
+  transition: background var(--motion-base);
+}
+
+.calendar-flipper {
+  perspective: 1400px;
+}
+
+.calendar-page {
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Flip Animations */
+@keyframes flipOutForward {
+  0% { transform: rotateY(0deg); opacity: 1; }
+  100% { transform: rotateY(-90deg); opacity: 0.3; }
+}
+
+@keyframes flipInForward {
+  0% { transform: rotateY(90deg); opacity: 0.3; }
+  100% { transform: rotateY(0deg); opacity: 1; }
+}
+
+@keyframes flipOutBackward {
+  0% { transform: rotateY(0deg); opacity: 1; }
+  100% { transform: rotateY(90deg); opacity: 0.3; }
+}
+
+@keyframes flipInBackward {
+  0% { transform: rotateY(-90deg); opacity: 0.3; }
+  100% { transform: rotateY(0deg); opacity: 1; }
+}
+
+.flip-out-fwd { animation: flipOutForward 280ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+.flip-in-fwd { animation: flipInForward 280ms cubic-bezier(0, 0, 0.2, 1) forwards; }
+.flip-out-bwd { animation: flipOutBackward 280ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+.flip-in-bwd { animation: flipInBackward 280ms cubic-bezier(0, 0, 0.2, 1) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-out-fwd, .flip-in-fwd, .flip-out-bwd, .flip-in-bwd {
+    animation: none !important;
+  }
+}
+
+/* Day Headers */
+.day-headers {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: var(--s1);
+}
+
+.day-header {
+  text-align: center;
+  font-size: var(--sz-micro);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wider);
+  color: var(--text-3);
+  padding: var(--s2) 0;
+  transition: color var(--motion-base);
+}
+
+.day-header.weekend {
+  color: var(--weekend-text);
+}
+
+/* Date Grid */
+.date-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+/* ================================================================
+   DATE CELL (Comprehensive State Management)
+================================================================ */
+.date-cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.date-cell.disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Range Background Layers */
+.cell-bg-layer {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 40px;
+  pointer-events: none;
+  transition: background var(--motion-color), opacity var(--motion-fast);
+  z-index: 0;
+}
+
+.cell-bg-full {
+  left: 0;
+  right: 0;
+  background: var(--range-fill);
+}
+
+.cell-bg-left {
+  left: 50%;
+  right: 0;
+  background: var(--range-fill);
+}
+
+.cell-bg-right {
+  left: 0;
+  right: 50%;
+  background: var(--range-fill);
+}
+
+.cell-bg-preview {
+  left: 0;
+  right: 0;
+  background: rgba(var(--accent-rgb), 0.08);
+  border-top: 1px dashed rgba(var(--accent-rgb), 0.3);
+  border-bottom: 1px dashed rgba(var(--accent-rgb), 0.3);
+}
+
+/* Cell Inner (Circle Container) */
+.cell-inner {
+  position: relative;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  transition: background var(--motion-fast), 
+              transform var(--motion-spring), 
+              box-shadow var(--motion-fast);
+}
+
+.date-cell:not(.disabled):not(.other-month):hover .cell-inner {
+  background: var(--state-hover);
+  transform: scale(1.05);
+}
+
+.date-cell:not(.disabled):not(.other-month):active .cell-inner {
+  transform: scale(0.92);
+}
+
+.date-cell:focus-visible .cell-inner {
+  box-shadow: 0 0 0 3px var(--state-focus-ring);
+}
+
+.cell-number {
+  font-size: var(--sz-body);
+  font-weight: var(--fw-regular);
+  color: var(--text-1);
+  line-height: 1;
+  pointer-events: none;
+  transition: color var(--motion-base), font-weight var(--motion-fast);
+}
+
+/* Other Month State */
+.date-cell.other-month .cell-number {
+  color: var(--text-disabled);
+}
+
+/* Weekend State */
+.date-cell.weekend:not(.selected-start):not(.selected-end) .cell-number {
+  color: var(--weekend-text);
+}
+
+/* Today State */
+.date-cell.today .cell-inner {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.date-cell.today .cell-number {
+  color: var(--accent);
+  font-weight: var(--fw-semibold);
+}
+
+/* Selected Endpoints */
+.date-cell.selected-start .cell-inner,
+.date-cell.selected-end .cell-inner {
+  background: var(--accent) !important;
+  box-shadow: var(--elev-2) !important;
+  transform: scale(1.08);
+}
+
+.date-cell.selected-start .cell-number,
+.date-cell.selected-end .cell-number {
+  color: white !important;
+  font-weight: var(--fw-semibold);
+}
+
+/* Holiday Indicator */
+.holiday-dot {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--holiday-indicator);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ================================================================
+   TOOLTIP
+================================================================ */
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--tooltip-bg);
+  color: white;
+  font-size: var(--sz-micro);
+  font-weight: var(--fw-medium);
+  padding: var(--s1) var(--s2);
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: var(--z-overlay);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 150ms ease, visibility 150ms ease, transform 150ms ease;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--tooltip-bg);
+}
+
+.date-cell:not(.other-month):hover .tooltip,
+.date-cell:not(.other-month):focus-visible .tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+/* ================================================================
+   SIDEBAR
+================================================================ */
+.calendar-sidebar {
+  display: none;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: var(--bg-surface);
+  transition: background var(--motion-base), border-color var(--motion-base);
+}
+
+/* ================================================================
+   NOTES PANEL
+================================================================ */
+.notes-panel {
+  padding: var(--s4);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notes-label {
+  font-size: var(--sz-micro);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wider);
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  transition: color var(--motion-base);
+}
+
+.notes-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity var(--motion-base), background var(--motion-color);
+}
+
+.notes-indicator.active {
+  opacity: 1;
+}
+
+.clear-button {
+  font-size: var(--sz-micro);
+  font-weight: var(--fw-medium);
+  color: var(--text-3);
+  padding: var(--s1) var(--s2);
+  border-radius: var(--r-sm);
+  transition: all var(--motion-fast);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.clear-button.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.clear-button:hover {
+  color: var(--error);
+  background: rgba(218, 30, 40, 0.08);
+}
+
+.clear-button.confirm-mode {
+  color: var(--error);
+  font-weight: var(--fw-semibold);
+  background: rgba(218, 30, 40, 0.12);
+}
+
+.range-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s1) var(--s3);
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: white;
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background var(--motion-color);
+  box-shadow: var(--elev-1);
+}
+
+.range-placeholder {
+  font-size: var(--sz-caption);
+  color: var(--text-3);
+  line-height: var(--lh-relaxed);
+  transition: color var(--motion-base);
+}
+
+.notes-lined-area {
+  flex: 1;
+  position: relative;
+  min-height: 180px;
+}
+
+.notes-lines-bg {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 31px,
+    var(--notepad-line) 31px,
+    var(--notepad-line) 32px
+  );
+  pointer-events: none;
+  border-radius: var(--r-sm);
+  transition: background var(--motion-base);
+}
+
+.notes-textarea {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--sz-body);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-loose);
+  color: var(--text-1);
+  padding: var(--s2) var(--s1);
+  position: relative;
+  z-index: 1;
+  resize: none;
+  transition: color var(--motion-base);
+}
+
+.notes-textarea::placeholder {
+  color: var(--text-3);
+}
+
+.save-button {
+  width: 100%;
+  height: 44px;
+  background: var(--accent);
+  color: white;
+  font-size: var(--sz-caption);
+  font-weight: var(--fw-semibold);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  transition: all var(--motion-spring);
+  box-shadow: var(--elev-2);
+}
+
+.save-button:hover:not(:disabled) {
+  filter: brightness(0.92);
+  transform: scale(1.02);
+  box-shadow: var(--elev-3);
+}
+
+.save-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.save-label {
+  transition: opacity var(--motion-base);
+}
+
+.saved-indicator {
+  opacity: 0;
+  color: var(--success);
+  font-size: var(--sz-micro);
+  font-weight: var(--fw-semibold);
+  transition: opacity var(--motion-base);
+}
+
+.saved-indicator.show {
+  opacity: 1;
+}
+
+/* Mobile Notes Toggle */
+.mobile-notes-toggle {
+  display: flex;
+  width: 100%;
+  padding: var(--s3) var(--s4);
+  background: var(--bg-surface-raised);
+  border-top: 1px solid var(--border);
+  font-size: var(--sz-caption);
+  font-weight: var(--fw-medium);
+  color: var(--text-2);
+  align-items: center;
+  justify-content: space-between;
+  transition: background var(--motion-fast), border-color var(--motion-base);
+}
+
+.mobile-notes-toggle:hover {
+  background: var(--state-hover);
+}
+
+.chevron-icon {
+  transition: transform var(--motion-base);
+}
+
+.chevron-icon.open {
+  transform: rotate(180deg);
+}
+
+.mobile-notes-body {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-notes-body.open {
+  max-height: 700px;
+}
+
+/* ================================================================
+   MINI MONTH PREVIEW
+================================================================ */
+.mini-preview {
+  padding: var(--s4);
+  border-top: 1px solid var(--border);
+  transition: border-color var(--motion-base);
+}
+
+.mini-preview-label {
+  font-size: var(--sz-caption);
+  font-weight: var(--fw-semibold);
+  color: var(--text-2);
+  margin-bottom: var(--s2);
+  transition: color var(--motion-base);
+}
+
+.mini-day-headers {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 2px;
+}
+
+.mini-day-header {
+  text-align: center;
+  font-size: 9px;
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 2px 0;
+}
+
+.mini-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+.mini-cell {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--sz-micro);
+  color: var(--text-1);
+  border-radius: var(--r-full);
+  transition: all var(--motion-fast);
+}
+
+.mini-cell.other-month {
+  color: var(--text-disabled);
+}
+
+.mini-cell.today {
+  box-shadow: 0 0 0 1.5px var(--accent);
+  color: var(--accent);
+  font-weight: var(--fw-semibold);
+}
+
+.mini-cell.in-range {
+  background: var(--range-fill);
+  border-radius: 0;
+}
+
+.mini-cell.selected {
+  background: var(--accent);
+  color: white;
+  border-radius: var(--r-full);
+}
+
+/* ================================================================
+   KEYBOARD SHORTCUT HINT (Undo/Redo)
+================================================================ */
+.shortcut-hint {
+  position: fixed;
+  bottom: var(--s4);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--tooltip-bg);
+  color: white;
+  font-size: var(--sz-micro);
+  font-weight: var(--fw-medium);
+  padding: var(--s2) var(--s4);
+  border-radius: var(--r-md);
+  box-shadow: var(--elev-4);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--motion-base), visibility var(--motion-base);
+  z-index: var(--z-toast);
+  pointer-events: none;
+}
+
+.shortcut-hint.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.shortcut-hint kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--r-xs);
+  font-family: monospace;
+  font-size: 10px;
+  margin: 0 2px;
+}
+
+/* ================================================================
+   RESPONSIVE DESIGN
+================================================================ */
+
+/* Tablet 640px+ */
+@media (min-width: 640px) {
+  .calendar-body {
+    grid-template-columns: 1fr 280px;
+  }
+  
+  .calendar-sidebar {
+    display: flex !important;
+  }
+  
+  .mobile-notes-toggle {
+    display: none !important;
+  }
+  
+  .mobile-notes-body {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
+/* Desktop 1024px+ */
+@media (min-width: 1024px) {
+  .calendar-body {
+    grid-template-columns: 1fr 320px;
+  }
+  
+  .cell-inner {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .cell-bg-layer {
+    height: 44px;
+  }
+}
+
+/* Mobile Portrait */
+@media (max-width: 639px) {
+  #app {
+    padding: 0;
+    align-items: flex-start;
+  }
+  
+  .calendar-container {
+    border-radius: 0;
+    box-shadow: none;
+  }
+  
+  .binding-strip {
+    height: 20px;
+    padding: 0 var(--s2);
+  }
+  
+  .binding-ring {
+    width: 12px;
+    height: 16px;
+  }
+  
+  .hero-section {
+    height: 220px;
+  }
+  
+  .hero-year {
+    font-size: 24px;
+  }
+  
+  .hero-month {
+    font-size: 18px;
+  }
+  
+  .hero-text-overlay {
+    bottom: var(--s3);
+    right: var(--s3);
+  }
+  
+  .calendar-grid-wrapper {
+    padding: var(--s2) var(--s2) var(--s4);
+  }
+  
+  .cell-inner {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .cell-bg-layer {
+    height: 36px;
+  }
+  
+  .date-cell {
+    min-height: 42px;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .date-cell:hover .cell-inner {
+    background: transparent;
+    transform: none;
+  }
+  
+  .date-cell:active .cell-inner {
+    background: var(--state-active);
+    transform: scale(0.95);
+  }
+}
+
+/* Print Styles */
+@media print {
+  #app {
+    padding: 0;
+  }
+  
+  .binding-strip,
+  .theme-toggle,
+  .nav-bar,
+  .calendar-sidebar,
+  .mobile-notes-toggle {
+    display: none !important;
+  }
+  
+  .calendar-container {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+  
+  .calendar-body {
+    grid-template-columns: 1fr;
+  }
+}
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div class="calendar-container" id="calendarContainer">
+    
+    <!-- Binding Strip -->
+    <div class="binding-strip" id="bindingStrip" role="presentation" aria-hidden="true"></div>
+    
+    <!-- Hero Image Section -->
+    <div class="hero-section" id="heroSection">
+      <img id="heroImage" class="hero-image" alt="" role="presentation" />
+      
+      <!-- Geometric SVG Overlay -->
+      <svg class="hero-geometric-overlay" id="heroGeo" viewBox="0 0 320 240" aria-hidden="true">
+        <polygon id="geoPoly1" points="0,240 220,240 150,80 0,130" opacity="0.85" />
+        <polygon id="geoPoly2" points="0,240 100,240 0,160" opacity="0.5" />
+      </svg>
+      
+      <!-- Month/Year Text -->
+      <div class="hero-text-overlay" aria-hidden="true">
+        <span class="hero-year" id="heroYear"></span>
+        <span class="hero-month" id="heroMonth"></span>
+      </div>
+      
+      <!-- Theme Toggle -->
+      <button class="theme-toggle" id="themeToggle" aria-label="Switch to dark mode" title="Toggle theme">
+        <svg id="sunIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg id="moonIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Navigation Bar -->
+    <div class="nav-bar">
+      <div class="nav-controls">
+        <button class="nav-button" id="prevButton" aria-label="Previous month">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <button class="nav-button" id="nextButton" aria-label="Next month">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+        <button class="nav-button" id="undoButton" aria-label="Undo" title="Undo (Ctrl+Z)" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/>
+          </svg>
+        </button>
+        <button class="nav-button" id="redoButton" aria-label="Redo" title="Redo (Ctrl+Y)" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 7v6h-6"/><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"/>
+          </svg>
+        </button>
+      </div>
+      
+      <span class="nav-title" id="navTitle" aria-live="polite" aria-atomic="true"></span>
+      
+      <button class="today-button hidden" id="todayButton" aria-label="Go to current month">Today</button>
+    </div>
+    
+    <!-- Calendar Body (2-Column Grid) -->
+    <div class="calendar-body">
+      
+      <!-- Main Calendar Grid -->
+      <div class="calendar-main">
+        <div class="calendar-grid-wrapper">
+          <div class="calendar-flipper" id="calendarFlipper">
+            <div class="calendar-page" id="calendarPage">
+              <!-- Day Headers -->
+              <div class="day-headers" id="dayHeaders" role="row" aria-hidden="true"></div>
+              <!-- Date Grid -->
+              <div class="date-grid" id="dateGrid" role="grid" aria-label="Calendar dates"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Mobile Notes Toggle -->
+        <button class="mobile-notes-toggle" id="mobileNotesToggle" aria-expanded="false" aria-controls="mobileNotesBody">
+          <span>Notes</span>
+          <svg class="chevron-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <div class="mobile-notes-body" id="mobileNotesBody">
+          <div id="mobileNotesInner"></div>
+        </div>
+      </div>
+      
+      <!-- Sidebar -->
+      <div class="calendar-sidebar" id="calendarSidebar">
+        
+        <!-- Notes Panel -->
+        <div class="notes-panel" id="notesPanel">
+          <div class="notes-header">
+            <span class="notes-label">
+              Notes
+              <span class="notes-indicator" id="notesIndicator"></span>
+            </span>
+            <button class="clear-button" id="clearButton" aria-label="Clear current note">Clear</button>
+          </div>
+          
+          <div id="badgeContainer">
+            <span class="range-placeholder" id="rangePlaceholder">Select dates to attach a note</span>
+          </div>
+          
+          <div class="notes-lined-area">
+            <div class="notes-lines-bg"></div>
+            <textarea 
+              class="notes-textarea" 
+              id="notesTextarea"
+              placeholder="Write a note…"
+              aria-label="Notes for this month"
+              rows="6"
+            ></textarea>
+          </div>
+          
+          <button class="save-button" id="saveButton">
+            <span class="save-label" id="saveLabel">Save Note</span>
+            <span class="saved-indicator" id="savedIndicator">✓ Saved</span>
+          </button>
+        </div>
+        
+        <!-- Mini Month Preview -->
+        <div class="mini-preview" id="miniPreview">
+          <div class="mini-preview-label" id="miniPreviewLabel"></div>
+          <div class="mini-day-headers" id="miniDayHeaders"></div>
+          <div class="mini-grid" id="miniGrid"></div>
+        </div>
+        
+      </div><!-- /.calendar-sidebar -->
+      
+    </div><!-- /.calendar-body -->
+    
+  </div><!-- /.calendar-container -->
+</div><!-- /#app -->
+
+<!-- ARIA Live Region -->
+<div id="ariaLive" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
+<!-- Keyboard Shortcut Hint -->
+<div class="shortcut-hint" id="shortcutHint">
+  <kbd>Ctrl</kbd>+<kbd>Z</kbd> Undo · <kbd>Ctrl</kbd>+<kbd>Y</kbd> Redo
+</div>
+
+<script>
+/**
+ * ================================================================
+ * WALL CALENDAR — PRODUCTION-GRADE INTERACTIVE COMPONENT
+ * ================================================================
+ * 
+ * Architecture: IIFE-scoped, functional, event-driven
+ * Pattern: Unidirectional data flow (state → render → DOM)
+ * Performance: requestIdleCallback, debouncing, memoization
+ * Accessibility: ARIA roles, keyboard navigation, screen reader support
+ * Error Handling: try-catch boundaries, graceful fallbacks
+ * 
+ * @author FAANG Interview Submission
+ * @version 2.0.0
+ */
+
+(function() {
+'use strict';
+
+/* ──────────────────────────────────────────────────────────────
+   CONSTANTS & CONFIGURATION
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Month names for display
+ * @const {ReadonlyArray<string>}
+ */
+const MONTHS = Object.freeze([
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+]);
+
+/**
+ * Day abbreviations (Monday-first calendar)
+ * @const {ReadonlyArray<string>}
+ */
+const DAYS = Object.freeze(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']);
+
+/**
+ * Picsum photo seeds per month (CORS-safe images)
+ * @const {Readonly<Record<number, number>>}
+ */
+const PICSUM_SEEDS = Object.freeze({
+  0: 15, 1: 42, 2: 88, 3: 112, 4: 139, 5: 165,
+  6: 202, 7: 243, 8: 274, 9: 295, 10: 318, 11: 335
+});
+
+/**
+ * Fallback accent colors per month
+ * @const {Readonly<Record<number, string>>}
+ */
+const MONTH_ACCENTS = Object.freeze({
+  0: '#4589FF', 1: '#E57373', 2: '#66BB6A', 3: '#26C6DA',
+  4: '#AB47BC', 5: '#0F62FE', 6: '#FF8F00', 7: '#2E7D32',
+  8: '#BF6900', 9: '#6A1B9A', 10: '#795548', 11: '#1565C0'
+});
+
+/**
+ * Fixed Indian holidays (repeating annually)
+ * @const {Readonly<Record<string, string>>}
+ */
+const FIXED_HOLIDAYS = Object.freeze({
+  '01-01': "New Year's Day",
+  '01-14': 'Makar Sankranti',
+  '01-26': 'Republic Day',
+  '03-08': "International Women's Day",
+  '04-14': 'Ambedkar Jayanti',
+  '05-01': 'Labour Day',
+  '06-21': 'International Yoga Day',
+  '08-15': 'Independence Day',
+  '10-02': 'Gandhi Jayanti',
+  '10-31': 'Sardar Patel Jayanti',
+  '11-14': "Children's Day",
+  '12-25': 'Christmas',
+  '12-31': "New Year's Eve"
+});
+
+/**
+ * Variable holidays (2024-2027 coverage)
+ * @const {Readonly<Record<string, string>>}
+ */
+const VARIABLE_HOLIDAYS = Object.freeze({
+  '2024-03-08': 'Maha Shivaratri', '2024-03-25': 'Holi', '2024-03-29': 'Good Friday',
+  '2024-04-11': 'Eid-ul-Fitr', '2024-06-17': 'Eid-ul-Adha', '2024-09-15': 'Onam',
+  '2024-10-12': 'Dussehra', '2024-10-31': 'Diwali', '2024-11-15': 'Guru Nanak Jayanti',
+  '2025-02-26': 'Maha Shivaratri', '2025-03-14': 'Holi', '2025-04-18': 'Good Friday',
+  '2025-03-30': 'Eid-ul-Fitr', '2025-06-07': 'Eid-ul-Adha', '2025-09-05': 'Onam',
+  '2025-10-02': 'Dussehra', '2025-10-20': 'Diwali', '2025-11-05': 'Guru Nanak Jayanti',
+  '2026-02-15': 'Maha Shivaratri', '2026-03-03': 'Holi', '2026-04-03': 'Good Friday',
+  '2026-03-20': 'Eid-ul-Fitr', '2026-05-27': 'Eid-ul-Adha', '2026-08-26': 'Onam',
+  '2026-10-20': 'Dussehra', '2026-11-08': 'Diwali', '2026-11-24': 'Guru Nanak Jayanti',
+  '2027-03-04': 'Maha Shivaratri', '2027-03-22': 'Holi', '2027-03-26': 'Good Friday',
+  '2027-03-10': 'Eid-ul-Fitr', '2027-05-17': 'Eid-ul-Adha', '2027-09-14': 'Onam',
+  '2027-10-09': 'Dussehra', '2027-10-29': 'Diwali', '2027-11-13': 'Guru Nanak Jayanti'
+});
+
+/**
+ * Performance configuration
+ * @const {Readonly<Object>}
+ */
+const CONFIG = Object.freeze({
+  DEBOUNCE_BLUR_MS: 300,
+  DEBOUNCE_RESIZE_MS: 150,
+  CLEAR_CONFIRM_TIMEOUT_MS: 2000,
+  SAVED_INDICATOR_MS: 1600,
+  FLIP_DURATION_MS: 280,
+  SHORTCUT_HINT_MS: 2000,
+  MAX_UNDO_STACK: 50,
+  TOUCH_SWIPE_THRESHOLD: 50
+});
+
+/* ──────────────────────────────────────────────────────────────
+   STATE MANAGEMENT
+────────────────────────────────────────────────────────────── */
+
+const NOW = new Date();
+
+/**
+ * Global application state
+ * @type {Object}
+ */
+const State = {
+  // Calendar state
+  year: NOW.getFullYear(),
+  month: NOW.getMonth(),
+  selectedStart: null,
+  selectedEnd: null,
+  hoverDate: null,
+  selectionPhase: 'idle', // 'idle' | 'selecting' | 'complete'
+  
+  // UI state
+  theme: 'light',
+  accentColor: '#0F62FE',
+  isFlipping: false,
+  flipDirection: 'forward',
+  heroImageUrl: '',
+  
+  // Notes state
+  noteDraft: '',
+  clearConfirm: false,
+  
+  // Undo/Redo stacks
+  undoStack: [],
+  redoStack: [],
+  
+  // Timers
+  timers: {
+    blur: null,
+    clear: null,
+    saved: null,
+    shortcut: null
+  },
+  
+  // Touch state
+  touchStartX: 0,
+  touchStartY: 0
+};
+
+/* ──────────────────────────────────────────────────────────────
+   UTILITY FUNCTIONS
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Pads a number with leading zeros
+ * @param {number} n - Number to pad
+ * @returns {string} Padded string
+ */
+const pad = (n) => String(n).padStart(2, '0');
+
+/**
+ * Creates a safe date at noon (avoids DST issues)
+ * @param {number} year
+ * @param {number} month
+ * @param {number} day
+ * @returns {Date}
+ */
+const safeDate = (year, month, day) => new Date(year, month, day, 12, 0, 0, 0);
+
+/**
+ * Returns date at start of day
+ * @param {Date} date
+ * @returns {Date}
+ */
+const startOfDay = (date) => safeDate(
+  date.getFullYear(),
+  date.getMonth(),
+  date.getDate()
+);
+
+/**
+ * Adds days to a date
+ * @param {Date} date
+ * @param {number} days
+ * @returns {Date}
+ */
+const addDays = (date, days) => {
+  const result = startOfDay(date);
+  result.setDate(result.getDate() + days);
+  return startOfDay(result);
+};
+
+/**
+ * Checks if two dates are the same day
+ * @param {Date|null} a
+ * @param {Date|null} b
+ * @returns {boolean}
+ */
+const sameDay = (a, b) => {
+  if (!a || !b) return false;
+  return a.getFullYear() === b.getFullYear() &&
+         a.getMonth() === b.getMonth() &&
+         a.getDate() === b.getDate();
+};
+
+/**
+ * Checks if date is a weekend
+ * @param {Date} date
+ * @returns {boolean}
+ */
+const isWeekend = (date) => {
+  const day = date.getDay();
+  return day === 0 || day === 6;
+};
+
+/**
+ * Checks if date is today
+ * @param {Date} date
+ * @returns {boolean}
+ */
+const isToday = (date) => sameDay(date, new Date());
+
+/**
+ * Returns ISO date key (YYYY-MM-DD)
+ * @param {Date} date
+ * @returns {string}
+ */
+const isoKey = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+/**
+ * Returns month key (YYYY-MM)
+ * @param {number} year
+ * @param {number} month
+ * @returns {string}
+ */
+const monthKey = (year, month) => `${year}-${pad(month + 1)}`;
+
+/**
+ * Generates 42-day calendar grid (6 weeks)
+ * @param {number} year
+ * @param {number} month
+ * @returns {Date[]}
+ */
+const getMonthGrid = (year, month) => {
+  const firstDay = safeDate(year, month, 1);
+  let dow = firstDay.getDay(); // 0 = Sunday
+  if (dow === 0) dow = 7; // Adjust Sunday to 7
+  const offset = dow - 1; // Days before month start
+  const startDate = addDays(firstDay, -offset);
+  return Array.from({ length: 42 }, (_, i) => addDays(startDate, i));
+};
+
+/**
+ * Formats date as "Jan 3"
+ * @param {Date} date
+ * @returns {string}
+ */
+const formatShort = (date) => 
+  date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+/**
+ * Formats date as "Monday, January 3, 2024"
+ * @param {Date} date
+ * @returns {string}
+ */
+const formatFull = (date) =>
+  date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+/**
+ * Formats date range
+ * @param {Date|null} start
+ * @param {Date|null} end
+ * @returns {string}
+ */
+const formatRange = (start, end) => {
+  if (!start && !end) return '';
+  if (start && !end) return formatShort(start);
+  if (!start || !end) return '';
+  
+  const [lo, hi] = start <= end ? [start, end] : [end, start];
+  const days = Math.floor((hi.getTime() - lo.getTime()) / 86400000) + 1;
+  return `${formatShort(lo)} → ${formatShort(hi)} · ${days} ${days === 1 ? 'day' : 'days'}`;
+};
+
+/**
+ * Gets holiday for a date
+ * @param {Date} date
+ * @returns {string|null}
+ */
+const getHoliday = (date) => {
+  const iso = isoKey(date);
+  const mmdd = `${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return VARIABLE_HOLIDAYS[iso] || FIXED_HOLIDAYS[mmdd] || null;
+};
+
+/* ──────────────────────────────────────────────────────────────
+   COLOR UTILITIES
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Converts hex to RGB object
+ * @param {string} hex
+ * @returns {{r: number, g: number, b: number}}
+ */
+const hexToRgb = (hex) => {
+  const num = parseInt(hex.replace('#', ''), 16);
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255
+  };
+};
+
+/**
+ * Converts RGB to hex
+ * @param {number} r
+ * @param {number} g
+ * @param {number} b
+ * @returns {string}
+ */
+const rgbToHex = (r, g, b) => {
+  const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+  return '#' + [r, g, b]
+    .map(v => clamp(v).toString(16).padStart(2, '0'))
+    .join('');
+};
+
+/**
+ * Calculates relative luminance
+ * @param {{r: number, g: number, b: number}} rgb
+ * @returns {number}
+ */
+const luminance = ({r, g, b}) => {
+  const transform = (channel) => {
+    const val = channel / 255;
+    return val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * transform(r) + 0.7152 * transform(g) + 0.0722 * transform(b);
+};
+
+/**
+ * Darkens a hex color by percentage
+ * @param {string} hex
+ * @param {number} percent
+ * @returns {string}
+ */
+const darkenHex = (hex, percent) => {
+  const {r, g, b} = hexToRgb(hex);
+  const factor = 1 - Math.max(0, Math.min(1, percent));
+  return rgbToHex(r * factor, g * factor, b * factor);
+};
+
+/**
+ * Extracts dominant color from image using canvas sampling
+ * Uses requestIdleCallback for non-blocking execution
+ * 
+ * @param {HTMLImageElement} imgElement
+ * @param {function(string|null): void} callback
+ */
+const extractDominantColor = (imgElement, callback) => {
+  const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1));
+  
+  idle(() => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 80;
+      canvas.height = 80;
+      
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) {
+        callback(null);
+        return;
+      }
+      
+      ctx.drawImage(imgElement, 0, 0, 80, 80);
+      
+      // Sample center region
+      const imageData = ctx.getImageData(15, 15, 50, 50).data;
+      
+      // Hue buckets (12 buckets = 30° each)
+      const buckets = Array.from({ length: 12 }, () => ({
+        count: 0,
+        rSum: 0,
+        gSum: 0,
+        bSum: 0
+      }));
+      
+      // Bin pixels by hue
+      for (let i = 0; i < imageData.length; i += 4) {
+        const r = imageData[i];
+        const g = imageData[i + 1];
+        const b = imageData[i + 2];
+        const a = imageData[i + 3];
+        
+        // Skip transparent, near-white, near-black pixels
+        if (a < 128) continue;
+        if (r > 220 && g > 220 && b > 220) continue;
+        if (r < 35 && g < 35 && b < 35) continue;
+        
+        // Calculate hue
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const delta = max - min;
+        
+        let hue = 0;
+        if (delta !== 0) {
+          switch (max) {
+            case r: hue = ((g - b) / delta) % 6; break;
+            case g: hue = (b - r) / delta + 2; break;
+            default: hue = (r - g) / delta + 4; break;
+          }
+          hue *= 60;
+          if (hue < 0) hue += 360;
+        }
+        
+        const bucketIndex = Math.floor(hue / 30) % 12;
+        buckets[bucketIndex].count++;
+        buckets[bucketIndex].rSum += r;
+        buckets[bucketIndex].gSum += g;
+        buckets[bucketIndex].bSum += b;
+      }
+      
+      // Find most populated bucket
+      const dominantBucket = buckets.reduce((max, bucket) => 
+        bucket.count > max.count ? bucket : max
+      , buckets[0]);
+      
+      if (dominantBucket.count === 0) {
+        callback(null);
+        return;
+      }
+      
+      // Average colors in bucket
+      let color = rgbToHex(
+        dominantBucket.rSum / dominantBucket.count,
+        dominantBucket.gSum / dominantBucket.count,
+        dominantBucket.bSum / dominantBucket.count
+      );
+      
+      // Ensure sufficient contrast
+      const lum = luminance(hexToRgb(color));
+      if (lum > 0.7) {
+        color = darkenHex(color, 0.3);
+      }
+      
+      callback(color);
+      
+    } catch (error) {
+      console.error('[Color Extraction Error]:', error);
+      callback(null);
+    }
+  });
+};
+
+/* ──────────────────────────────────────────────────────────────
+   STORAGE UTILITIES
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Safely gets item from localStorage
+ * @template T
+ * @param {string} key
+ * @param {T} fallback
+ * @returns {T}
+ */
+const storageGet = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (error) {
+    console.warn('[Storage Get Error]:', key, error);
+    return fallback;
+  }
+};
+
+/**
+ * Safely sets item in localStorage
+ * @param {string} key
+ * @param {any} value
+ * @returns {boolean}
+ */
+const storageSet = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch (error) {
+    console.warn('[Storage Set Error]:', key, error);
+    return false;
+  }
+};
+
+/**
+ * Safely removes item from localStorage
+ * @param {string} key
+ * @returns {boolean}
+ */
+const storageRemove = (key) => {
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.warn('[Storage Remove Error]:', key, error);
+    return false;
+  }
+};
+
+/**
+ * Gets notes index array
+ * @returns {string[]}
+ */
+const getNotesIndex = () => storageGet('cal_notes_index', []);
+
+/**
+ * Adds key to notes index
+ * @param {string} key
+ */
+const addToNotesIndex = (key) => {
+  const index = getNotesIndex();
+  if (!index.includes(key)) {
+    index.push(key);
+    storageSet('cal_notes_index', index);
+  }
+};
+
+/**
+ * Removes key from notes index
+ * @param {string} key
+ */
+const removeFromNotesIndex = (key) => {
+  const index = getNotesIndex().filter(k => k !== key);
+  storageSet('cal_notes_index', index);
+};
+
+/* ──────────────────────────────────────────────────────────────
+   UNDO/REDO SYSTEM
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Captures current selection state snapshot
+ * @returns {{start: Date|null, end: Date|null, phase: string}}
+ */
+const captureSelectionSnapshot = () => ({
+  start: State.selectedStart ? new Date(State.selectedStart) : null,
+  end: State.selectedEnd ? new Date(State.selectedEnd) : null,
+  phase: State.selectionPhase
+});
+
+/**
+ * Pushes current state to undo stack
+ */
+const pushUndo = () => {
+  const snapshot = captureSelectionSnapshot();
+  State.undoStack.push(snapshot);
+  
+  // Limit stack size
+  if (State.undoStack.length > CONFIG.MAX_UNDO_STACK) {
+    State.undoStack.shift();
+  }
+  
+  // Clear redo stack on new action
+  State.redoStack = [];
+  
+  updateUndoRedoButtons();
+};
+
+/**
+ * Performs undo operation
+ */
+const performUndo = () => {
+  if (State.undoStack.length === 0) return;
+  
+  // Save current state to redo stack
+  const current = captureSelectionSnapshot();
+  State.redoStack.push(current);
+  
+  // Restore previous state
+  const previous = State.undoStack.pop();
+  State.selectedStart = previous.start;
+  State.selectedEnd = previous.end;
+  State.selectionPhase = previous.phase;
+  State.hoverDate = null;
+  
+  fastRender();
+  refreshNotes();
+  updateUndoRedoButtons();
+  announce('Undone');
+  showShortcutHint();
+};
+
+/**
+ * Performs redo operation
+ */
+const performRedo = () => {
+  if (State.redoStack.length === 0) return;
+  
+  // Save current state to undo stack
+  const current = captureSelectionSnapshot();
+  State.undoStack.push(current);
+  
+  // Restore next state
+  const next = State.redoStack.pop();
+  State.selectedStart = next.start;
+  State.selectedEnd = next.end;
+  State.selectionPhase = next.phase;
+  State.hoverDate = null;
+  
+  fastRender();
+  refreshNotes();
+  updateUndoRedoButtons();
+  announce('Redone');
+  showShortcutHint();
+};
+
+/**
+ * Updates visibility of undo/redo buttons
+ */
+const updateUndoRedoButtons = () => {
+  const undoBtn = document.getElementById('undoButton');
+  const redoBtn = document.getElementById('redoButton');
+  
+  if (undoBtn) {
+    undoBtn.style.display = State.undoStack.length > 0 ? '' : 'none';
+    undoBtn.disabled = State.undoStack.length === 0;
+  }
+  
+  if (redoBtn) {
+    redoBtn.style.display = State.redoStack.length > 0 ? '' : 'none';
+    redoBtn.disabled = State.redoStack.length === 0;
+  }
+};
+
+/**
+ * Shows keyboard shortcut hint temporarily
+ */
+const showShortcutHint = () => {
+  const hint = document.getElementById('shortcutHint');
+  if (!hint) return;
+  
+  clearTimeout(State.timers.shortcut);
+  hint.classList.add('show');
+  
+  State.timers.shortcut = setTimeout(() => {
+    hint.classList.remove('show');
+  }, CONFIG.SHORTCUT_HINT_MS);
+};
+
+/* ──────────────────────────────────────────────────────────────
+   ACCENT COLOR SYSTEM
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Sets global accent color with CSS variables
+ * @param {string} hex
+ */
+const setAccentColor = (hex) => {
+  State.accentColor = hex;
+  const root = document.documentElement;
+  const {r, g, b} = hexToRgb(hex);
+  
+  root.style.setProperty('--accent', hex);
+  root.style.setProperty('--accent-dark', darkenHex(hex, 0.22));
+  root.style.setProperty('--accent-light', hex + '26'); // 15% opacity
+  root.style.setProperty('--accent-rgb', `${r}, ${g}, ${b}`);
+  
+  // Update geometric overlay
+  const poly1 = document.getElementById('geoPoly1');
+  const poly2 = document.getElementById('geoPoly2');
+  if (poly1) poly1.setAttribute('fill', hex);
+  if (poly2) poly2.setAttribute('fill', hex);
+};
+
+/* ──────────────────────────────────────────────────────────────
+   ARIA ANNOUNCEMENTS
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Announces message to screen readers
+ * @param {string} message
+ */
+const announce = (message) => {
+  const liveRegion = document.getElementById('ariaLive');
+  if (!liveRegion) return;
+  
+  // Clear then set to trigger announcement
+  liveRegion.textContent = '';
+  requestAnimationFrame(() => {
+    liveRegion.textContent = message;
+  });
+};
+
+/* ──────────────────────────────────────────────────────────────
+   RENDER FUNCTIONS
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Renders binding strip with metal rings
+ */
+const renderBindingStrip = () => {
+  const strip = document.getElementById('bindingStrip');
+  if (!strip) return;
+  
+  const isMobile = window.innerWidth < 640;
+  const ringCount = isMobile ? 16 : 22;
+  
+  strip.innerHTML = '';
+  
+  for (let i = 0; i < ringCount; i++) {
+    const ring = document.createElement('div');
+    ring.className = 'binding-ring';
+    strip.appendChild(ring);
+  }
+};
+
+/**
+ * Renders hero image with dominant color extraction
+ */
+const renderHeroImage = () => {
+  document.getElementById('heroYear').textContent = State.year;
+  document.getElementById('heroMonth').textContent = MONTHS[State.month];
+  
+  // Set month-based accent immediately
+  setAccentColor(MONTH_ACCENTS[State.month]);
+  
+  const img = document.getElementById('heroImage');
+  const seed = PICSUM_SEEDS[State.month];
+  const url = `https://picsum.photos/seed/cal${State.year}${State.month}${seed}/1200/400`;
+  
+  if (url === State.heroImageUrl) return;
+  State.heroImageUrl = url;
+  
+  img.classList.remove('visible');
+  
+  // Preload image
+  const tempImg = new Image();
+  tempImg.crossOrigin = 'anonymous';
+  
+  tempImg.onload = () => {
+    img.src = url;
+    img.classList.add('visible');
+    
+    // Extract dominant color
+    extractDominantColor(tempImg, (color) => {
+      if (color) {
+        setAccentColor(color);
+      }
+    });
+  };
+  
+  tempImg.onerror = () => {
+    // Fallback: use month accent
+    img.src = '';
+    img.classList.add('visible');
+    setAccentColor(MONTH_ACCENTS[State.month]);
+  };
+  
+  tempImg.src = url;
+};
+
+/**
+ * Renders navigation bar
+ */
+const renderNavigation = () => {
+  document.getElementById('navTitle').textContent = 
+    `${MONTHS[State.month]} ${State.year}`;
+  
+  const isCurrentMonth = 
+    State.year === NOW.getFullYear() && State.month === NOW.getMonth();
+  
+  document.getElementById('todayButton').classList.toggle('hidden', isCurrentMonth);
+};
+
+/**
+ * Renders day headers (MON-SUN)
+ */
+const renderDayHeaders = () => {
+  const container = document.getElementById('dayHeaders');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  DAYS.forEach((day, index) => {
+    const div = document.createElement('div');
+    div.className = 'day-header' + (index >= 5 ? ' weekend' : '');
+    div.textContent = day;
+    container.appendChild(div);
+  });
+};
+
+/**
+ * Computes cell state for a given date
+ * @param {Date} date
+ * @returns {Object} Cell state object
+ */
+const computeCellState = (date) => {
+  const inCurrentMonth = 
+    date.getMonth() === State.month && 
+    date.getFullYear() === State.year;
+  
+  const cellDate = startOfDay(date);
+  const cellTime = cellDate.getTime();
+  
+  // Selection state
+  const startTime = State.selectedStart ? startOfDay(State.selectedStart).getTime() : null;
+  const endTime = State.selectedEnd ? startOfDay(State.selectedEnd).getTime() : null;
+  
+  const [loTime, hiTime] = 
+    startTime !== null && endTime !== null && startTime <= endTime
+      ? [startTime, endTime]
+      : [endTime, startTime];
+  
+  const isSingleDay = startTime !== null && endTime !== null && startTime === endTime;
+  const isStartDate = startTime !== null && cellTime === startTime;
+  const isEndDate = endTime !== null && cellTime === endTime;
+  const isInRange = !isSingleDay && loTime !== null && hiTime !== null && cellTime > loTime && cellTime < hiTime;
+  
+  // Preview state (hover while selecting)
+  let isInPreview = false;
+  if (State.selectionPhase === 'selecting' && State.selectedStart && State.hoverDate) {
+    const hoverTime = startOfDay(State.hoverDate).getTime();
+    const [prevLo, prevHi] = startTime <= hoverTime
+      ? [startTime, hoverTime]
+      : [hoverTime, startTime];
+    isInPreview = cellTime > prevLo && cellTime < prevHi;
+  }
+  
+  return {
+    otherMonth: !inCurrentMonth,
+    weekend: inCurrentMonth && isWeekend(date),
+    today: inCurrentMonth && isToday(date),
+    isStart: isStartDate,
+    isEnd: isEndDate,
+    isSingleDay,
+    isInRange,
+    isInPreview,
+    holiday: inCurrentMonth ? getHoliday(date) : null,
+    disabled: !inCurrentMonth
+  };
+};
+
+/**
+ * Renders the date grid
+ */
+const renderDateGrid = () => {
+  const grid = document.getElementById('dateGrid');
+  if (!grid) return;
+  
+  grid.innerHTML = '';
+  
+  const days = getMonthGrid(State.year, State.month);
+  let firstFocusable = null;
+  
+  days.forEach((date, index) => {
+    const state = computeCellState(date);
+    
+    const button = document.createElement('button');
+    button.setAttribute('role', 'gridcell');
+    button.setAttribute('data-iso', isoKey(date));
+    button.setAttribute('data-index', index);
+    button.tabIndex = -1;
+    
+    // Build class list
+    const classes = ['date-cell'];
+    if (state.otherMonth) classes.push('other-month');
+    if (state.disabled) classes.push('disabled');
+    if (state.today) classes.push('today');
+    if (state.weekend) classes.push('weekend');
+    if (state.isStart) classes.push('selected-start');
+    if (state.isEnd) classes.push('selected-end');
+    if (state.isInRange) classes.push('in-range');
+    if (state.isInPreview) classes.push('in-preview');
+    if (state.holiday) classes.push('has-holiday');
+    
+    button.className = classes.join(' ');
+    
+    // ARIA attributes
+    if (state.today) button.setAttribute('aria-current', 'date');
+    if (state.isStart || state.isEnd) button.setAttribute('aria-selected', 'true');
+    
+    let ariaLabel = formatFull(date);
+    if (state.today) ariaLabel += ', Today';
+    if (state.holiday) ariaLabel += `, Holiday: ${state.holiday}`;
+    if (state.isStart && !state.isSingleDay) ariaLabel += ', Start of range';
+    if (state.isEnd && !state.isSingleDay) ariaLabel += ', End of range';
+    
+    button.setAttribute('aria-label', ariaLabel);
+    
+    // Build innerHTML
+    let html = '';
+    
+    // Range background layers
+    if (state.isInRange) {
+      html += '<span class="cell-bg-layer cell-bg-full" aria-hidden="true"></span>';
+    } else if (state.isStart && !state.isSingleDay && State.selectedEnd) {
+      html += '<span class="cell-bg-layer cell-bg-left" aria-hidden="true"></span>';
+    } else if (state.isEnd && !state.isSingleDay && State.selectedStart) {
+      html += '<span class="cell-bg-layer cell-bg-right" aria-hidden="true"></span>';
+    }
+    
+    // Preview layer
+    if (state.isInPreview) {
+      html += '<span class="cell-bg-layer cell-bg-preview" aria-hidden="true"></span>';
+    }
+    
+    // Inner circle + number
+    html += '<span class="cell-inner">';
+    html += `<span class="cell-number">${date.getDate()}</span>`;
+    
+    // Holiday dot
+    if (state.holiday) {
+      html += '<span class="holiday-dot" aria-hidden="true"></span>';
+    }
+    
+    html += '</span>';
+    
+    // Tooltip
+    if (state.holiday) {
+      html += `<span class="tooltip" role="tooltip">${state.holiday}</span>`;
+    }
+    
+    button.innerHTML = html;
+    
+    // Event listeners
+    if (!state.disabled) {
+      button.addEventListener('click', () => handleDateClick(date));
+      button.addEventListener('dblclick', () => handleDateDoubleClick(date));
+      button.addEventListener('mouseenter', () => handleDateHover(date));
+      button.addEventListener('mouseleave', handleDateLeave);
+      button.addEventListener('keydown', (e) => handleDateKeyDown(e, date, index, days));
+      
+      if (!firstFocusable && (state.today || !state.otherMonth)) {
+        firstFocusable = button;
+      }
+    }
+    
+    grid.appendChild(button);
+  });
+  
+  // Set initial focus
+  const todayCell = grid.querySelector('.date-cell.today:not(.other-month)');
+  if (todayCell) {
+    todayCell.tabIndex = 0;
+  } else if (firstFocusable) {
+    firstFocusable.tabIndex = 0;
+  }
+};
+
+/**
+ * Renders mini month preview
+ */
+const renderMiniPreview = () => {
+  let nextMonth = State.month + 1;
+  let nextYear = State.year;
+  
+  if (nextMonth > 11) {
+    nextMonth = 0;
+    nextYear++;
+  }
+  
+  document.getElementById('miniPreviewLabel').textContent = 
+    `${MONTHS[nextMonth]} ${nextYear}`;
+  
+  // Day headers
+  const hdrs = document.getElementById('miniDayHeaders');
+  if (hdrs) {
+    hdrs.innerHTML = '';
+    ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(d => {
+      const div = document.createElement('div');
+      div.className = 'mini-day-header';
+      div.textContent = d;
+      hdrs.appendChild(div);
+    });
+  }
+  
+  // Mini grid
+  const grid = document.getElementById('miniGrid');
+  if (!grid) return;
+  
+  grid.innerHTML = '';
+  
+  const days = getMonthGrid(nextYear, nextMonth);
+  
+  days.forEach(date => {
+    const div = document.createElement('div');
+    const inMonth = date.getMonth() === nextMonth && date.getFullYear() === nextYear;
+    const state = computeCellState(date);
+    
+    const classes = ['mini-cell'];
+    if (!inMonth) classes.push('other-month');
+    if (inMonth && isToday(date)) classes.push('today');
+    if (state.isInRange) classes.push('in-range');
+    if (state.isStart || state.isEnd) classes.push('selected');
+    
+    div.className = classes.join(' ');
+    div.textContent = date.getDate();
+    
+    grid.appendChild(div);
+  });
+};
+
+/* ──────────────────────────────────────────────────────────────
+   EVENT HANDLERS
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Handles date cell click
+ * @param {Date} date
+ */
+const handleDateClick = (date) => {
+  const d = startOfDay(date);
+  
+  if (State.selectionPhase === 'idle') {
+    pushUndo();
+    State.selectedStart = d;
+    State.selectedEnd = null;
+    State.selectionPhase = 'selecting';
+    State.hoverDate = d;
+    announce(`Start date: ${formatShort(d)}. Click another date to complete range.`);
+    
+  } else if (State.selectionPhase === 'selecting') {
+    if (sameDay(d, State.selectedStart)) {
+      // Single day selection
+      State.selectedEnd = d;
+      State.selectionPhase = 'complete';
+      State.hoverDate = null;
+      announce(`Single day selected: ${formatShort(d)}`);
+    } else {
+      // Range selection
+      const [lo, hi] = d >= State.selectedStart 
+        ? [State.selectedStart, d]
+        : [d, State.selectedStart];
+      State.selectedStart = lo;
+      State.selectedEnd = hi;
+      State.selectionPhase = 'complete';
+      State.hoverDate = null;
+      announce(`Range selected: ${formatRange(lo, hi)}`);
+    }
+    
+  } else {
+    // complete → clear
+    pushUndo();
+    State.selectedStart = null;
+    State.selectedEnd = null;
+    State.selectionPhase = 'idle';
+    State.hoverDate = null;
+    announce('Selection cleared. Click a date to start new selection.');
+  }
+  
+  fastRender();
+  refreshNotes();
+  updateUndoRedoButtons();
+};
+
+/**
+ * Handles date cell double-click
+ * @param {Date} date
+ */
+const handleDateDoubleClick = (date) => {
+  pushUndo();
+  const d = startOfDay(date);
+  State.selectedStart = d;
+  State.selectedEnd = d;
+  State.selectionPhase = 'complete';
+  State.hoverDate = null;
+  announce(`Single day selected: ${formatShort(d)}`);
+  fastRender();
+  refreshNotes();
+  updateUndoRedoButtons();
+};
+
+/**
+ * Handles date cell hover (for preview)
+ * @param {Date} date
+ */
+const handleDateHover = (date) => {
+  if (State.selectionPhase !== 'selecting') return;
+  State.hoverDate = startOfDay(date);
+  renderDateGrid();
+  renderMiniPreview();
+};
+
+/**
+ * Handles date cell mouse leave
+ */
+const handleDateLeave = () => {
+  if (State.selectionPhase !== 'selecting') return;
+  State.hoverDate = State.selectedStart;
+  renderDateGrid();
+  renderMiniPreview();
+};
+
+/**
+ * Handles keyboard navigation on date cells
+ * @param {KeyboardEvent} e
+ * @param {Date} date
+ * @param {number} index
+ * @param {Date[]} allDays
+ */
+const handleDateKeyDown = (e, date, index, allDays) => {
+  const grid = document.getElementById('dateGrid');
+  const cells = Array.from(grid.querySelectorAll('.date-cell'));
+  
+  const moveFocus = (delta) => {
+    e.preventDefault();
+    let newIndex = index + delta;
+    
+    // Skip other-month cells
+    while (newIndex >= 0 && newIndex < cells.length && 
+           cells[newIndex].classList.contains('other-month')) {
+      newIndex += delta > 0 ? 1 : -1;
+    }
+    
+    if (newIndex >= 0 && newIndex < cells.length && 
+        !cells[newIndex].classList.contains('other-month')) {
+      cells.forEach(c => c.tabIndex = -1);
+      cells[newIndex].tabIndex = 0;
+      cells[newIndex].focus();
+    }
+  };
+  
+  switch (e.key) {
+    case 'ArrowRight': moveFocus(1); break;
+    case 'ArrowLeft': moveFocus(-1); break;
+    case 'ArrowDown': moveFocus(7); break;
+    case 'ArrowUp': moveFocus(-7); break;
+    
+    case 'Enter':
+    case ' ':
+      e.preventDefault();
+      handleDateClick(date);
+      break;
+    
+    case 'Escape':
+      pushUndo();
+      State.selectedStart = null;
+      State.selectedEnd = null;
+      State.selectionPhase = 'idle';
+      State.hoverDate = null;
+      announce('Selection cleared');
+      fastRender();
+      refreshNotes();
+      updateUndoRedoButtons();
+      break;
+  }
+};
+
+/* ──────────────────────────────────────────────────────────────
+   MONTH NAVIGATION
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Navigates to adjacent month with flip animation
+ * @param {number} direction - 1 for next, -1 for previous
+ */
+const navigateMonth = (direction) => {
+  if (State.isFlipping) return;
+  
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  
+  let newMonth = State.month + direction;
+  let newYear = State.year;
+  
+  if (newMonth > 11) {
+    newMonth = 0;
+    newYear++;
+  } else if (newMonth < 0) {
+    newMonth = 11;
+    newYear--;
+  }
+  
+  if (reducedMotion) {
+    State.month = newMonth;
+    State.year = newYear;
+    fullRender(true);
+    return;
+  }
+  
+  const page = document.getElementById('calendarPage');
+  const outClass = direction > 0 ? 'flip-out-fwd' : 'flip-out-bwd';
+  const inClass = direction > 0 ? 'flip-in-fwd' : 'flip-in-bwd';
+  
+  State.isFlipping = true;
+  page.classList.add(outClass);
+  
+  setTimeout(() => {
+    page.classList.remove(outClass);
+    State.month = newMonth;
+    State.year = newYear;
+    fullRender(true);
+    page.classList.add(inClass);
+    
+    setTimeout(() => {
+      page.classList.remove(inClass);
+      State.isFlipping = false;
+    }, CONFIG.FLIP_DURATION_MS);
+  }, CONFIG.FLIP_DURATION_MS);
+};
+
+/* ──────────────────────────────────────────────────────────────
+   NOTES SYSTEM
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Gets active note storage key
+ * @returns {string}
+ */
+const getActiveNoteKey = () => {
+  if (State.selectedStart && State.selectedEnd) {
+    const [lo, hi] = State.selectedStart <= State.selectedEnd
+      ? [State.selectedStart, State.selectedEnd]
+      : [State.selectedEnd, State.selectedStart];
+    return `cal_note_range_${isoKey(lo)}_${isoKey(hi)}`;
+  }
+  return `cal_note_month_${monthKey(State.year, State.month)}`;
+};
+
+/**
+ * Gets active note label for display
+ * @returns {string}
+ */
+const getActiveNoteLabel = () => {
+  if (State.selectedStart && State.selectedEnd) {
+    return formatRange(State.selectedStart, State.selectedEnd);
+  }
+  return `${MONTHS[State.month]} ${State.year}`;
+};
+
+/**
+ * Loads note from storage
+ * @returns {string}
+ */
+const loadNote = () => {
+  const key = getActiveNoteKey();
+  const record = storageGet(key, null);
+  return record ? (record.text || '') : '';
+};
+
+/**
+ * Saves note to storage
+ * @param {string} text
+ */
+const saveNote = (text) => {
+  const key = getActiveNoteKey();
+  const existing = storageGet(key, {});
+  const now = new Date().toISOString();
+  const isRange = key.startsWith('cal_note_range_');
+  
+  const record = {
+    text,
+    createdAt: existing.createdAt || now,
+    updatedAt: now,
+    ...(isRange ? { rangeLabel: getActiveNoteLabel() } : {})
+  };
+  
+  storageSet(key, record);
+  addToNotesIndex(key);
+};
+
+/**
+ * Clears current note
+ */
+const clearNote = () => {
+  const key = getActiveNoteKey();
+  storageRemove(key);
+  removeFromNotesIndex(key);
+  State.noteDraft = '';
+  renderNotesPanel();
+  syncMobileNotes();
+};
+
+/**
+ * Refreshes notes panel for current selection
+ */
+const refreshNotes = () => {
+  State.noteDraft = loadNote();
+  renderNotesPanel();
+  syncMobileNotes();
+};
+
+/**
+ * Renders notes panel UI
+ */
+const renderNotesPanel = () => {
+  const {selectedStart, selectedEnd, noteDraft} = State;
+  
+  // Range badge / placeholder
+  const badgeContainer = document.getElementById('badgeContainer');
+  const placeholder = document.getElementById('rangePlaceholder');
+  
+  if (selectedStart && selectedEnd) {
+    placeholder.style.display = 'none';
+    let badge = document.getElementById('rangeBadge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.id = 'rangeBadge';
+      badge.className = 'range-badge';
+      badgeContainer.appendChild(badge);
+    }
+    badge.textContent = formatRange(selectedStart, selectedEnd);
+    badge.style.display = '';
+  } else {
+    placeholder.style.display = '';
+    const badge = document.getElementById('rangeBadge');
+    if (badge) badge.style.display = 'none';
+  }
+  
+  // Textarea
+  const textarea = document.getElementById('notesTextarea');
+  textarea.value = noteDraft;
+  textarea.setAttribute('aria-label',
+    selectedStart && selectedEnd
+      ? `Notes for ${getActiveNoteLabel()}`
+      : `Notes for ${MONTHS[State.month]} ${State.year}`
+  );
+  
+  // Clear button
+  const clearBtn = document.getElementById('clearButton');
+  clearBtn.classList.toggle('visible', noteDraft.trim().length > 0);
+  if (!noteDraft.trim()) {
+    clearBtn.classList.remove('confirm-mode');
+    clearBtn.textContent = 'Clear';
+    State.clearConfirm = false;
+  }
+  
+  // Notes indicator dot
+  const indicator = document.getElementById('notesIndicator');
+  const hasAnyNote = getNotesIndex().some(k => 
+    k.includes(monthKey(State.year, State.month))
+  );
+  indicator.classList.toggle('active', hasAnyNote || noteDraft.trim().length > 0);
+};
+
+/**
+ * Builds mobile notes panel (mirror of sidebar)
+ */
+const buildMobileNotesPanel = () => {
+  const container = document.getElementById('mobileNotesInner');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="notes-panel">
+      <div class="notes-header">
+        <span class="notes-label">Notes</span>
+        <button class="clear-button" id="mobileClearButton">Clear</button>
+      </div>
+      <div id="mobileBadgeContainer">
+        <span class="range-placeholder" id="mobileRangePlaceholder">Select dates to attach a note</span>
+      </div>
+      <div class="notes-lined-area">
+        <div class="notes-lines-bg"></div>
+        <textarea 
+          class="notes-textarea" 
+          id="mobileNotesTextarea"
+          placeholder="Write a note…"
+          rows="6"
+        ></textarea>
+      </div>
+      <button class="save-button" id="mobileSaveButton">
+        <span class="save-label" id="mobileSaveLabel">Save Note</span>
+        <span class="saved-indicator" id="mobileSavedIndicator">✓ Saved</span>
+      </button>
+    </div>
+  `;
+  
+  // Wire events
+  const mobileTextarea = document.getElementById('mobileNotesTextarea');
+  mobileTextarea.addEventListener('input', (e) => {
+    State.noteDraft = e.target.value;
+    document.getElementById('notesTextarea').value = e.target.value;
+  });
+  
+  mobileTextarea.addEventListener('blur', () => {
+    clearTimeout(State.timers.blur);
+    State.timers.blur = setTimeout(() => {
+      if (State.noteDraft.trim()) {
+        saveNote(State.noteDraft);
+        showSavedIndicator(true);
+        renderNotesPanel();
+      }
+    }, CONFIG.DEBOUNCE_BLUR_MS);
+  });
+  
+  document.getElementById('mobileSaveButton').addEventListener('click', () => {
+    if (State.noteDraft.trim()) {
+      saveNote(State.noteDraft);
+      showSavedIndicator(true);
+      renderNotesPanel();
+      syncMobileNotes();
+    }
+  });
+  
+  document.getElementById('mobileClearButton').addEventListener('click', () => {
+    clearNote();
+  });
+};
+
+/**
+ * Syncs mobile notes panel with current state
+ */
+const syncMobileNotes = () => {
+  const mobileTextarea = document.getElementById('mobileNotesTextarea');
+  if (!mobileTextarea) return;
+  
+  mobileTextarea.value = State.noteDraft;
+  
+  // Badge
+  const container = document.getElementById('mobileBadgeContainer');
+  const placeholder = document.getElementById('mobileRangePlaceholder');
+  
+  if (!container || !placeholder) return;
+  
+  if (State.selectedStart && State.selectedEnd) {
+    placeholder.style.display = 'none';
+    let badge = document.getElementById('mobileRangeBadge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.id = 'mobileRangeBadge';
+      badge.className = 'range-badge';
+      container.appendChild(badge);
+    }
+    badge.textContent = formatRange(State.selectedStart, State.selectedEnd);
+    badge.style.display = '';
+  } else {
+    placeholder.style.display = '';
+    const badge = document.getElementById('mobileRangeBadge');
+    if (badge) badge.style.display = 'none';
+  }
+};
+
+/**
+ * Shows saved indicator animation
+ * @param {boolean} isMobile
+ */
+const showSavedIndicator = (isMobile = false) => {
+  const suffix = isMobile ? 'mobile' : '';
+  const indicatorId = isMobile ? 'mobileSavedIndicator' : 'savedIndicator';
+  const labelId = isMobile ? 'mobileSaveLabel' : 'saveLabel';
+  
+  const indicator = document.getElementById(indicatorId);
+  const label = document.getElementById(labelId);
+  
+  if (!indicator || !label) return;
+  
+  clearTimeout(State.timers.saved);
+  indicator.classList.add('show');
+  label.style.opacity = '0';
+  
+  State.timers.saved = setTimeout(() => {
+    indicator.classList.remove('show');
+    label.style.opacity = '1';
+  }, CONFIG.SAVED_INDICATOR_MS);
+};
+
+/* ──────────────────────────────────────────────────────────────
+   THEME TOGGLE
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Toggles between light and dark theme
+ */
+const toggleTheme = () => {
+  State.theme = State.theme === 'light' ? 'dark' : 'light';
+  
+  const html = document.documentElement;
+  html.classList.add('theme-transitioning');
+  html.setAttribute('data-theme', State.theme);
+  
+  const isDark = State.theme === 'dark';
+  document.getElementById('sunIcon').style.display = isDark ? 'none' : '';
+  document.getElementById('moonIcon').style.display = isDark ? '' : 'none';
+  document.getElementById('themeToggle').setAttribute('aria-label',
+    isDark ? 'Switch to light mode' : 'Switch to dark mode'
+  );
+  
+  setTimeout(() => html.classList.remove('theme-transitioning'), 300);
+};
+
+/* ──────────────────────────────────────────────────────────────
+   TOUCH GESTURES
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Handles touch start
+ * @param {TouchEvent} e
+ */
+const handleTouchStart = (e) => {
+  State.touchStartX = e.touches[0].clientX;
+  State.touchStartY = e.touches[0].clientY;
+};
+
+/**
+ * Handles touch end (swipe detection)
+ * @param {TouchEvent} e
+ */
+const handleTouchEnd = (e) => {
+  if (!e.changedTouches || !e.changedTouches[0]) return;
+  
+  const touchEndX = e.changedTouches[0].clientX;
+  const touchEndY = e.changedTouches[0].clientY;
+  
+  const deltaX = touchEndX - State.touchStartX;
+  const deltaY = touchEndY - State.touchStartY;
+  
+  // Only trigger if horizontal swipe is dominant
+  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > CONFIG.TOUCH_SWIPE_THRESHOLD) {
+    if (deltaX > 0) {
+      // Swipe right → previous month
+      navigateMonth(-1);
+    } else {
+      // Swipe left → next month
+      navigateMonth(1);
+    }
+  }
+};
+
+/* ──────────────────────────────────────────────────────────────
+   RENDER COORDINATION
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Full render (includes hero image and navigation)
+ * @param {boolean} newMonth - Whether month changed
+ */
+const fullRender = (newMonth) => {
+  renderNavigation();
+  
+  if (newMonth) {
+    renderHeroImage();
+    State.noteDraft = loadNote();
+    renderNotesPanel();
+    syncMobileNotes();
+  }
+  
+  renderDateGrid();
+  renderMiniPreview();
+  updateUndoRedoButtons();
+};
+
+/**
+ * Fast render (only grid and mini preview)
+ */
+const fastRender = () => {
+  renderDateGrid();
+  renderMiniPreview();
+};
+
+/* ──────────────────────────────────────────────────────────────
+   EVENT WIRING
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Wires all event listeners
+ */
+const wireEvents = () => {
+  // Navigation
+  document.getElementById('prevButton').addEventListener('click', () => navigateMonth(-1));
+  document.getElementById('nextButton').addEventListener('click', () => navigateMonth(1));
+  document.getElementById('todayButton').addEventListener('click', () => {
+    State.year = NOW.getFullYear();
+    State.month = NOW.getMonth();
+    fullRender(true);
+  });
+  
+  // Undo/Redo
+  document.getElementById('undoButton').addEventListener('click', performUndo);
+  document.getElementById('redoButton').addEventListener('click', performRedo);
+  
+  // Theme toggle
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+  
+  // Notes
+  const textarea = document.getElementById('notesTextarea');
+  textarea.addEventListener('input', (e) => {
+    State.noteDraft = e.target.value;
+  });
+  
+  textarea.addEventListener('blur', () => {
+    clearTimeout(State.timers.blur);
+    State.timers.blur = setTimeout(() => {
+      if (State.noteDraft.trim()) {
+        saveNote(State.noteDraft);
+        showSavedIndicator(false);
+        renderNotesPanel();
+        syncMobileNotes();
+      }
+    }, CONFIG.DEBOUNCE_BLUR_MS);
+  });
+  
+  document.getElementById('saveButton').addEventListener('click', () => {
+    if (State.noteDraft.trim()) {
+      saveNote(State.noteDraft);
+      showSavedIndicator(false);
+      renderNotesPanel();
+      syncMobileNotes();
+    }
+  });
+  
+  // Clear button
+  document.getElementById('clearButton').addEventListener('click', () => {
+    const btn = document.getElementById('clearButton');
+    if (State.clearConfirm) {
+      clearNote();
+      State.clearConfirm = false;
+      btn.textContent = 'Clear';
+      btn.classList.remove('confirm-mode');
+    } else {
+      State.clearConfirm = true;
+      btn.textContent = 'Confirm?';
+      btn.classList.add('confirm-mode');
+      clearTimeout(State.timers.clear);
+      State.timers.clear = setTimeout(() => {
+        State.clearConfirm = false;
+        btn.textContent = 'Clear';
+        btn.classList.remove('confirm-mode');
+      }, CONFIG.CLEAR_CONFIRM_TIMEOUT_MS);
+    }
+  });
+  
+  // Mobile notes toggle
+  const mobileToggle = document.getElementById('mobileNotesToggle');
+  const mobileBody = document.getElementById('mobileNotesBody');
+  
+  mobileToggle.addEventListener('click', () => {
+    const isOpen = mobileBody.classList.toggle('open');
+    mobileToggle.setAttribute('aria-expanded', String(isOpen));
+    mobileToggle.querySelector('.chevron-icon').classList.toggle('open', isOpen);
+    if (isOpen) syncMobileNotes();
+  });
+  
+  // Global keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Undo/Redo
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      performUndo();
+    } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      e.preventDefault();
+      performRedo();
+    }
+    // Escape to clear selection
+    else if (e.key === 'Escape' && State.selectionPhase !== 'idle') {
+      pushUndo();
+      State.selectedStart = null;
+      State.selectedEnd = null;
+      State.selectionPhase = 'idle';
+      State.hoverDate = null;
+      announce('Selection cleared');
+      fastRender();
+      refreshNotes();
+      updateUndoRedoButtons();
+    }
+  });
+  
+  // Touch gestures (swipe)
+  const calContainer = document.getElementById('calendarContainer');
+  calContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
+  calContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
+  
+  // Resize handler (debounced)
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      renderBindingStrip();
+    }, CONFIG.DEBOUNCE_RESIZE_MS);
+  });
+};
+
+/* ──────────────────────────────────────────────────────────────
+   INITIALIZATION
+────────────────────────────────────────────────────────────── */
+
+/**
+ * Initializes the calendar application
+ */
+const initialize = () => {
+  try {
+    renderBindingStrip();
+    renderDayHeaders();
+    renderHeroImage();
+    renderNavigation();
+    renderDateGrid();
+    renderMiniPreview();
+    
+    State.noteDraft = loadNote();
+    renderNotesPanel();
+    
+    buildMobileNotesPanel();
+    syncMobileNotes();
+    
+    wireEvents();
+    updateUndoRedoButtons();
+    
+    console.log('[Calendar] Initialized successfully');
+  } catch (error) {
+    console.error('[Calendar] Initialization error:', error);
+    // Graceful degradation - show error message to user
+    const app = document.getElementById('app');
+    if (app) {
+      app.innerHTML = `
+        <div style="padding: 40px; text-align: center; color: #DA1E28;">
+          <h2>Failed to load calendar</h2>
+          <p>Please refresh the page to try again.</p>
+        </div>
+      `;
+    }
+  }
+};
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initialize);
+} else {
+  initialize();
+}
+
+})(); // End IIFE
+</script>
+</body>
+</html>
