@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 📅 Wall Calendar — Production-Grade Interactive Component
 
 > **FAANG-Level Submission** — A pixel-perfect, production-ready interactive wall calendar built with vanilla JavaScript, featuring advanced state management, comprehensive accessibility, performance optimization, and enterprise-grade error handling.
@@ -699,3 +700,6 @@ SOFTWARE.
 ⭐ Star this repo if you found it helpful!
 
 </div>
+=======
+# frontend-project
+>>>>>>> fb0dc3c2839d1bc6a096c7687698af85e041bc06
